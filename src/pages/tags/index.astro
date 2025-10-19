@@ -1,0 +1,28 @@
+---
+import SiteLayout from "../../layouts/SiteLayout.astro";
+import { getCollection } from "astro:content";
+
+const posts = (await getCollection("posts"))
+  .filter((p:any) => (p.data.status ?? "Published") === "Published");
+
+// Ensure TS knows these are strings
+const all: string[] = posts.flatMap((p:any) => (p.data.tags ?? []) as string[]);
+const unique: string[] = Array.from(new Set(all)).sort((a, b) => a.localeCompare(b));
+
+// Strongly type counts
+const counts: Record<string, number> = unique.reduce((acc, t) => {
+  acc[t] = all.filter((x) => x === t).length;
+  return acc;
+}, {} as Record<string, number>);
+---
+
+<SiteLayout title="Tags • Ultra Yatra" description="Browse posts by tag">
+  <h1>Tags</h1>
+  <div style="display:flex; gap:.5rem; flex-wrap:wrap; margin-top:.75rem;">
+    {unique.map((tag) => (
+      <a class="badge" href={`/tags/${encodeURIComponent(tag)}`}>
+        {tag} • {counts[tag]}
+      </a>
+    ))}
+  </div>
+</SiteLayout>

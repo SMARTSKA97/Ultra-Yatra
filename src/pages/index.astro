@@ -1,16 +1,32 @@
 ---
+import SiteLayout from "../layouts/SiteLayout.astro";
+import { getCollection } from "astro:content";
+import PostCard from "../components/PostCard.astro";
 
+const posts = (await getCollection("posts"))
+  .filter((p:any) => (p.data.status ?? "Published") === "Published")
+  .sort((a:any,b:any) => new Date(String(b.data.publishedAt)).getTime() - new Date(String(a.data.publishedAt)).getTime())
+  .slice(0, 9);
 ---
+<SiteLayout>
+  <section class="hero">
+    <h1>Ultra Yatra</h1>
+    <p>My ultracycling journey — stories, scars, stats, and soul. Long miles, honest lessons.</p>
+  </section>
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
-</html>
+  <section>
+    <h2 style="margin:0 0 1rem">Latest posts</h2>
+    <div class="grid">
+      {posts.map((p:any) => (
+        <PostCard
+          href={`/blog/${p.data.slug ?? p.slug}`}
+          title={p.data.title}
+          cover={p.data.cover}
+          date={String(p.data.publishedAt)}
+          language={p.data.language}
+          excerpt={p.data.excerpt}
+        />
+      ))}
+    </div>
+  </section>
+</SiteLayout>

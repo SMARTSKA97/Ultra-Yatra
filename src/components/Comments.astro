@@ -1,0 +1,21 @@
+---
+const { pathname } = Astro.url;
+---
+<section id="comments" style="margin-top:2rem;">
+  <script
+    src="https://giscus.app/client.js"
+    data-repo="yourname/yourrepo"
+    data-repo-id="YOUR_REPO_ID"
+    data-category="Comments"
+    data-category-id="YOUR_CATEGORY_ID"
+    data-mapping="pathname"
+    data-reactions-enabled="1"
+    data-emit-metadata="0"
+    data-input-position="bottom"
+    data-theme="light"
+    data-lang="en"
+    crossorigin="anonymous"
+    async>
+  </script>
+  <noscript>Enable JavaScript to view comments.</noscript>
+</section>

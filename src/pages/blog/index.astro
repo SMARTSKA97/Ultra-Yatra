@@ -1,0 +1,57 @@
+---
+import SiteLayout from "../../layouts/SiteLayout.astro";
+import { getCollection } from "astro:content";
+import PostCard from "../../components/PostCard.astro";
+
+const posts = (await getCollection("posts"))
+  .filter((p:any) => (p.data.status ?? "Published") === "Published")
+  .sort((a:any,b:any) => new Date(String(b.data.publishedAt)).getTime() - new Date(String(a.data.publishedAt)).getTime());
+---
+<SiteLayout title="Blog • Ultra Yatra" description="All stories and tutorials">
+  <h1>All Posts</h1>
+
+  <div class="search">
+    <input id="q" type="search" placeholder="Search posts (title, excerpt, language)..." />
+  </div>
+
+  <div class="grid" id="grid">
+    {posts.map((p:any) => (
+      <PostCard
+        href={`/blog/${p.data.slug ?? p.slug}`}
+        title={p.data.title}
+        cover={p.data.cover}
+        date={String(p.data.publishedAt)}
+        language={p.data.language}
+        excerpt={p.data.excerpt}
+      />
+    ))}
+  </div>
+
+  <script type="module">
+    import Fuse from '/web_modules/fuse.js';
+    const res = await fetch('/api/search.json');
+    const data = await res.json(); // [{title, slug, excerpt, language, cover, date}]
+    const fuse = new Fuse(data, { keys: ['title','excerpt','language'], threshold: 0.4 });
+    const q = document.getElementById('q');
+    const grid = document.getElementById('grid');
+
+    const tpl = (p) => `
+      <article class="card">
+        ${p.cover ? `<a href="/blog/${p.slug}"><img src="${p.cover}" alt=""></a>` : ''}
+        <div class="pad">
+          <h3><a href="/blog/${p.slug}">${p.title}</a></h3>
+          <p class="meta">
+            <span>${new Date(p.date).toLocaleDateString()}</span>
+            ${p.language ? `<span> • ${p.language}</span>` : ''}
+          </p>
+          ${p.excerpt ? `<p style="opacity:.85;margin:.5rem 0 0">${p.excerpt}</p>` : ''}
+        </div>
+      </article>`;
+
+    q?.addEventListener('input', (e) => {
+      const term = e.target.value.trim();
+      const results = term ? fuse.search(term).map(r => r.item) : data;
+      grid.innerHTML = results.map(tpl).join('');
+    });
+  </script>
+</SiteLayout>

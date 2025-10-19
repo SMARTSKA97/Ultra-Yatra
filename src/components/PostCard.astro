@@ -1,0 +1,16 @@
+---
+const { href, title, cover, date, language, excerpt } = Astro.props as {
+  href: string; title: string; cover?: string; date: string; language?: string; excerpt?: string;
+};
+---
+<article class="card">
+  {cover && <a href={href}><img src={cover} alt="" loading="lazy" decoding="async" /></a>}
+  <div class="pad">
+    <h3><a href={href}>{title}</a></h3>
+    <p class="meta">
+      <span>{new Date(date).toLocaleDateString()}</span>
+      {language && <span> • {language}</span>}
+    </p>
+    {excerpt && <p style="opacity:.9;margin:.5rem 0 0">{excerpt}</p>}
+  </div>
+</article>

@@ -3,12 +3,24 @@
   "type": "module",
   "version": "0.0.1",
   "scripts": {
-    "dev": "astro dev",
-    "build": "astro build",
+    "sync": "astro sync",
+    "content:pull": "tsx scripts/pull-notion.ts",
+    "dev": "npm run content:pull && astro dev",
+    "build": "npm run content:pull && astro build",
     "preview": "astro preview",
+    "postinstall": "node scripts/postinstall.cjs",
     "astro": "astro"
   },
   "dependencies": {
-    "astro": "^5.14.6"
+    "@astrojs/rss": "^4.0.12",
+    "astro": "^5.14.6",
+    "fuse.js": "^7.1.0"
+  },
+  "devDependencies": {
+    "@notionhq/client": "^2.2.14",
+    "dotenv": "^17.2.3",
+    "notion-to-md": "^3.1.9",
+    "remark-gfm": "^4.0.1",
+    "tsx": "^4.20.6"
   }
 }

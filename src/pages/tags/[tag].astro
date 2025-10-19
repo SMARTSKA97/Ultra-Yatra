@@ -1,0 +1,46 @@
+---
+import SiteLayout from "../../layouts/SiteLayout.astro";
+import { getCollection } from "astro:content";
+import PostCard from "../../components/PostCard.astro";
+
+// Pre-generate all tag pages
+export async function getStaticPaths() {
+  const posts = await getCollection("posts", (p:any) => (p.data.status ?? "Published") === "Published");
+  const all: string[] = posts.flatMap((p:any) => (p.data.tags ?? []) as string[]);
+  const unique = Array.from(new Set(all));
+  return unique.map((t) => ({ params: { tag: t } }));
+}
+
+const { tag } = Astro.params;
+const posts = (await getCollection("posts"))
+  .filter(
+    (p:any) =>
+      (p.data.status ?? "Published") === "Published" &&
+      (p.data.tags ?? []).includes(tag as string)
+  )
+  .sort(
+    (a:any, b:any) =>
+      new Date(String(b.data.publishedAt)).getTime() -
+      new Date(String(a.data.publishedAt)).getTime()
+  );
+---
+
+<SiteLayout title={`#${tag} • Ultra Yatra`} description={`Posts tagged ${tag}`}>
+  <h1>#{tag}</h1>
+  {posts.length === 0 ? (
+    <p class="meta">No posts yet.</p>
+  ) : (
+    <div class="grid">
+      {posts.map((p:any) => (
+        <PostCard
+          href={`/blog/${p.data.slug ?? p.slug}`}
+          title={p.data.title}
+          cover={p.data.cover}
+          date={String(p.data.publishedAt)}
+          language={p.data.language}
+          excerpt={p.data.excerpt}
+        />
+      ))}
+    </div>
+  )}
+</SiteLayout>

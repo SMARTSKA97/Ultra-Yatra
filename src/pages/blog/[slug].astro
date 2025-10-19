@@ -1,0 +1,36 @@
+---
+import SiteLayout from "../../layouts/SiteLayout.astro";
+import { getCollection, type CollectionEntry } from "astro:content";
+import Comments from "../../components/Comments.astro";
+
+// Tell Astro exactly what we return so TS doesn't infer `never`
+export async function getStaticPaths() {
+  const posts = await getCollection("posts", (p:any) => (p.data.status ?? "Published") === "Published");
+  return posts.map((p:any) => ({
+    params: { slug: (p.data.slug ?? p.slug) as string },
+    // Pass the entry along as a typed prop
+    props: { entry: p as CollectionEntry<"posts"> },
+  }));
+}
+
+// Type the props we read from getStaticPaths
+const { entry } = Astro.props as { entry: CollectionEntry<"posts"> };
+
+const { Content } = await entry.render();
+const metaTitle = `${entry.data.title} • Ultra Yatra`;
+const metaDesc = entry.data.excerpt ?? "";
+---
+
+<SiteLayout title={metaTitle} description={metaDesc}>
+  <article class="prose">
+    <h1>{entry.data.title}</h1>
+    <p class="meta">
+      <span>{new Date(String(entry.data.publishedAt)).toLocaleDateString()}</span>
+      {entry.data.language && <span> • {entry.data.language}</span>}
+    </p>
+    {entry.data.cover && <img src={entry.data.cover} alt="" />}
+    <Content />
+  </article>
+
+  <Comments />
+</SiteLayout>
