@@ -1,0 +1,42 @@
+---
+import SiteLayout from "../../../layouts/SiteLayout.astro";
+import { getCollection, type CollectionEntry } from "astro:content";
+import { isSupported, defaultLocale } from "../../../lib/i18n";
+import LanguagePicker from "../../../components/LanguagePicker.astro";
+
+export async function getStaticPaths() {
+  const langs = (import.meta.env.I18N_LOCALES ?? 'en:English')
+    .split(',')
+    .map((s:any) => s.split(':')[0].trim());
+  return langs.map((code:any) => ({ params: { lang: code }, props: { lang: code } }));
+}
+
+const { lang } = Astro.params as { lang: string };
+if (!isSupported(lang)) {
+  throw Astro.redirect(`/${defaultLocale}/blog`);
+}
+
+const posts: CollectionEntry<"posts">[] = (await getCollection("posts"))
+  .filter((p:any) => (p.data.status ?? "Published") === "Published" && (p.data.language ?? "en") === lang)
+  .sort((a:any, b:any) => new Date(String(b.data.publishedAt)).getTime() - new Date(String(a.data.publishedAt)).getTime());
+---
+<SiteLayout title="Blog • Ultra Yatra" description="">
+  <div class="row" style="margin-bottom:1rem; gap:.75rem; align-items:center;">
+    <h1 style="margin:0">Blog</h1>
+    <LanguagePicker current={lang} />
+  </div>
+
+  {posts.length === 0 ? (
+    <p class="meta">No posts in this language yet.</p>
+  ) : (
+    <ul>
+      {posts.map(p => (
+        <li>
+          <a href={`/${lang}/blog/${p.data.slug ?? p.slug}`}>{p.data.title}</a>
+          <br />
+          <small>{new Date(String(p.data.publishedAt)).toLocaleDateString()}</small>
+        </li>
+      ))}
+    </ul>
+  )}
+</SiteLayout>

@@ -1,25 +1,202 @@
 [
   {
-    "date": "2025-10-15",
-    "title": "Tour de Bengal Day 1",
-    "body": "Day 1 planning vs Execution. Mid point and Post finish realisation.",
-    "link": "/"
+    "slug": "why",
+    "title": "Why?",
+    "langs": [
+      {
+        "code": "en",
+        "status": "Published",
+        "url": "/en/blog/why",
+        "date": "2025-10-15"
+      },
+      {
+        "code": "hi",
+        "status": "Not started",
+        "url": null,
+        "date": "2025-10-20"
+      },
+      {
+        "code": "bn",
+        "status": "Published",
+        "url": "/bn/blog/why",
+        "date": "2025-10-20"
+      }
+    ],
+    "completeness": 0
   },
   {
-    "date": "2025-10-15",
-    "title": "Tour de Bengal Day 2",
-    "body": "Day 2 planning vs Execution. Mid point crisis. Post finish statement.",
-    "link": "/"
-  },{
-    "date": "2025-10-15",
+    "slug": "tdb-day3",
     "title": "Tour de Bengal Day 3",
-    "body": "Day 3 planning vs Execution. What about the last point?.",
-    "link": "/"
+    "langs": [
+      {
+        "code": "en",
+        "status": "Draft",
+        "url": null,
+        "date": "2025-10-17"
+      },
+      {
+        "code": "hi",
+        "status": "Coming soon",
+        "url": null,
+        "date": null
+      },
+      {
+        "code": "bn",
+        "status": "Coming soon",
+        "url": null,
+        "date": null
+      }
+    ],
+    "completeness": 0
   },
   {
-    "date": "2025-10-10",
+    "slug": "e1-end",
+    "title": "End of E1 of my Phase",
+    "langs": [
+      {
+        "code": "en",
+        "status": "Draft",
+        "url": null,
+        "date": "2025-10-17"
+      },
+      {
+        "code": "hi",
+        "status": "Coming soon",
+        "url": null,
+        "date": null
+      },
+      {
+        "code": "bn",
+        "status": "Coming soon",
+        "url": null,
+        "date": null
+      }
+    ],
+    "completeness": 0
+  },
+  {
+    "slug": "tdb-day1",
+    "title": "Tour de Bengal Day 1",
+    "langs": [
+      {
+        "code": "en",
+        "status": "Draft",
+        "url": null,
+        "date": "2025-10-16"
+      },
+      {
+        "code": "hi",
+        "status": "Coming soon",
+        "url": null,
+        "date": null
+      },
+      {
+        "code": "bn",
+        "status": "Coming soon",
+        "url": null,
+        "date": null
+      }
+    ],
+    "completeness": 0
+  },
+  {
+    "slug": "e2-journey",
+    "title": "initiation of E2, plans and ",
+    "langs": [
+      {
+        "code": "en",
+        "status": "Not started",
+        "url": null,
+        "date": "2025-10-20"
+      },
+      {
+        "code": "hi",
+        "status": "Coming soon",
+        "url": null,
+        "date": null
+      },
+      {
+        "code": "bn",
+        "status": "Coming soon",
+        "url": null,
+        "date": null
+      }
+    ],
+    "completeness": 0
+  },
+  {
+    "slug": "tdb-day0",
+    "title": "Tour de Bengal Day 0",
+    "langs": [
+      {
+        "code": "en",
+        "status": "Published",
+        "url": "/en/blog/tdb-day0",
+        "date": "2025-10-20"
+      },
+      {
+        "code": "hi",
+        "status": "Coming soon",
+        "url": null,
+        "date": null
+      },
+      {
+        "code": "bn",
+        "status": "Coming soon",
+        "url": null,
+        "date": null
+      }
+    ],
+    "completeness": 0
+  },
+  {
+    "slug": "tdb-celebration",
     "title": "Tour de Bengal Celebration",
-    "body": "Post celebration updates. My upcoming work.",
-    "link": "/"
+    "langs": [
+      {
+        "code": "en",
+        "status": "Not started",
+        "url": null,
+        "date": "2025-10-20"
+      },
+      {
+        "code": "hi",
+        "status": "Coming soon",
+        "url": null,
+        "date": null
+      },
+      {
+        "code": "bn",
+        "status": "Coming soon",
+        "url": null,
+        "date": null
+      }
+    ],
+    "completeness": 0
+  },
+  {
+    "slug": "tdb-day2",
+    "title": "Tour de Bengal Day 2",
+    "langs": [
+      {
+        "code": "en",
+        "status": "Draft",
+        "url": null,
+        "date": "2025-10-16"
+      },
+      {
+        "code": "hi",
+        "status": "Coming soon",
+        "url": null,
+        "date": null
+      },
+      {
+        "code": "bn",
+        "status": "Coming soon",
+        "url": null,
+        "date": null
+      }
+    ],
+    "completeness": 0
   }
 ]

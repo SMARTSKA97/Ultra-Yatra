@@ -1,0 +1,47 @@
+---
+import { locales } from "../lib/i18n";
+
+type Props = {
+  current: string;          // current language code
+  slug?: string;            // current post slug (optional on blog index)
+  available?: string[];     // language codes that are Published for this slug
+};
+
+const { current, slug, available = [] } = Astro.props as Props;
+const selectId = "lang-picker-" + Math.random().toString(36).slice(2);
+---
+<select
+  id={selectId}
+  class="pill"
+  value={current}
+  data-slug={slug ?? ""}
+  aria-label="Change language"
+>
+  {locales.map((l) => {
+    const has = available.includes(l.code);
+    const label = `${l.label} — ${has ? "available" : "coming soon"}`;
+    return (
+      <option
+        value={l.code}
+        selected={l.code === current}
+        disabled={!has && l.code !== current}
+      >
+        {label}
+      </option>
+    );
+  })}
+</select>
+
+<script type="module">
+  document.addEventListener("DOMContentLoaded", () => {
+    const sel = document.getElementById("{selectId}");
+    if (sel) {
+      sel.addEventListener("change", (e) => {
+        const code = e.target.value;
+        const slug = sel.dataset.slug || "";
+        const href = slug ? `/${code}/blog/${slug}` : `/${code}/blog`;
+        window.location.href = href;
+      });
+    }
+  });
+</script>

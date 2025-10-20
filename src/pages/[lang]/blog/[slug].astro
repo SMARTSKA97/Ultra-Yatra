@@ -1,0 +1,59 @@
+---
+import SiteLayout from "../../../layouts/SiteLayout.astro";
+import { getCollection, type CollectionEntry } from "astro:content";
+import { isSupported, defaultLocale } from "../../../lib/i18n";
+import LanguagePicker from "../../../components/LanguagePicker.astro";
+// import YouTube from "../../../../components/YouTube.astro"; // optional
+
+export async function getStaticPaths() {
+  const all = await getCollection("posts", (p:any) => (p.data.status ?? "Published") === "Published");
+  // build a path per (language, slug)
+  return all.map((p:any) => ({
+    params: {
+      lang: String(p.data.language ?? 'en'),
+      slug: String(p.data.slug ?? p.slug)
+    }
+  }));
+}
+
+const { lang, slug } = Astro.params as { lang: string; slug: string };
+if (!isSupported(lang)) throw Astro.redirect(`/${defaultLocale}/blog/${slug}`);
+
+const posts = await getCollection("posts");
+
+// find the entry for this lang+slug
+const entry = posts.find((p:any) =>
+  (p.data.status ?? "Published") === "Published" &&
+  (p.data.language ?? "en") === lang &&
+  (p.data.slug ?? p.slug) === slug
+) as CollectionEntry<"posts"> | undefined;
+
+if (!entry) throw Astro.redirect(`/${lang}/blog`);
+
+// compute which languages are Published for this slug
+const available = posts
+  .filter((p:any) => (p.data.status ?? "Published") === "Published" && (p.data.slug ?? p.slug) === slug)
+  .map((p:any) => (p.data.language ?? "en"));
+
+const { Content } = await entry.render();
+const metaTitle = `${entry.data.title} • Ultra Yatra`;
+const metaDesc  = entry.data.excerpt ?? "";
+---
+<SiteLayout title={metaTitle} description={metaDesc}>
+  <div class="row" style="justify-content:flex-end; gap:.5rem; margin-bottom:.5rem;">
+    <LanguagePicker current={lang} slug={slug} available={available} />
+  </div>
+
+  <article class="prose">
+    <h1>{entry.data.title}</h1>
+    <p class="meta">
+      <span>{new Date(String(entry.data.publishedAt)).toLocaleDateString()}</span>
+      {typeof entry.data.readingTime === 'number' && <span> • {entry.data.readingTime} min read</span>}
+    </p>
+
+    <!-- {entry.data.youtubeId && <YouTube id={entry.data.youtubeId} title={entry.data.title} />} -->
+
+    {entry.data.cover && <img src={entry.data.cover} alt="" />}
+    <Content />
+  </article>
+</SiteLayout>

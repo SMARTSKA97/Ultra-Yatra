@@ -1,0 +1,8 @@
+---
+import { defaultLocale } from "../../../lib/i18n";
+
+const rest = (Astro.params.rest || "").split("/").filter(Boolean);
+const to = rest.length ? `/${defaultLocale}/blog/${rest.join('/')}` : `/${defaultLocale}/blog`;
+
+throw Astro.redirect(to, 301);
+---

@@ -1,110 +1,169 @@
-import dotenv from 'dotenv';
-dotenv.config();
-
-import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
-import { join, basename } from 'node:path';
+#!/usr/bin/env tsx
+import 'dotenv/config';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { stringify as yamlStringify } from 'yaml';
 import { notion, NOTION_DB_ID } from './utils/notion';
 import { pageToMarkdown } from './utils/md';
 import { slugify } from './utils/slugify';
-import { download, localAssetPath, publicAssetUrl } from './utils/download';
+import { download, localAssetPath, publicAssetUrl, basename } from './utils/download';
 
 const OUT_DIR = 'src/content/posts';
 if (!existsSync(OUT_DIR)) mkdirSync(OUT_DIR, { recursive: true });
 
-type AnyRecord = Record<string, any>;
-
-function getProp(props: AnyRecord | undefined, name: string) {
-  return props ? (props as AnyRecord)[name] : undefined;
-}
-function getPropAny(props: AnyRecord | undefined, names: string[]) {
-  if (!props) return undefined;
-  for (const n of names) if ((props as AnyRecord)[n] != null) return (props as AnyRecord)[n];
-  return undefined;
-}
-function text(rich: any[] | undefined) {
+/** ---------- helpers ---------- */
+function extractText(rich: any[] | undefined) {
   return (rich ?? []).map((t: any) => t?.plain_text ?? '').join('');
 }
-function clean(s: string) {
-  return (s || '').replace(/"/g, '\\"');
+function getPropAny(props: Record<string, any>, keys: string[]) {
+  for (const k of keys) {
+    if (props?.[k]) return props[k];
+    const alt =
+      Object.keys(props || {}).find((p) => p.toLowerCase() === k.toLowerCase());
+    if (alt) return props[alt];
+  }
+  return undefined;
 }
-
-async function coverUrl(page: AnyRecord) {
-  const u: string | null = page.cover?.external?.url || page.cover?.file?.url || null;
-  if (!u) return null;
-  const out = localAssetPath(u);
-  await download(u, out);
-  return publicAssetUrl(basename(out));
-}
-
-function rewriteImages(md: string) {
-  return md.replace(/!\[[^\]]*\]\((https?:\/\/[^)]+)\)/g, (_m, url: string) => {
-    const name = basename(new URL(url).pathname);
-    return _m.replace(url, `/notion-assets/${name}`);
-  });
-}
-
 function getStatusName(props: Record<string, any>): string {
-  // Try common property names; support either case
   const prop =
-    props?.Status ??
-    props?.status ??
-    props?.State ??
-    props?.state ??
-    null;
-
+    props?.Status ?? props?.status ?? props?.State ?? props?.state ?? null;
   if (!prop) return '';
-
-  // Notion “Status” property
-  if (prop.status && typeof prop.status.name === 'string') {
-    return prop.status.name;
-  }
-  // Notion “Select” property
-  if (prop.select && typeof prop.select.name === 'string') {
-    return prop.select.name;
-  }
+  if (prop.status?.name) return String(prop.status.name);
+  if (prop.select?.name) return String(prop.select.name);
   return '';
 }
-
 function isPublishedStatus(name: unknown) {
   const s = String(name || '').trim().toLowerCase();
-  // Accept common variants; extend if you add more
   return s === 'published' || s.startsWith('published') || s === 'live' || s === 'public';
 }
+function sanitizeOneLine(s?: string) {
+  return (s || '').replace(/\r?\n+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+function rewriteImageLinks(md: string) {
+  if (!md) return '';
+  return md.replace(/!\[[^\]]*\]\((https?:\/\/[^)]+)\)/g, (m, url: string) => {
+    const name = basename(new URL(url).pathname);
+    return m.replace(url, `/notion-assets/${name}`);
+  });
+}
+function extractYouTubeId(input?: string | null): string | null {
+  if (!input) return null;
+  const s = String(input).trim();
+  if (/^[a-zA-Z0-9_-]{11}$/.test(s)) return s;
+  try {
+    const u = new URL(s);
+    if (u.hostname.includes('youtu.be')) return u.pathname.slice(1);
+    if (u.hostname.includes('youtube.com')) {
+      const id = u.searchParams.get('v');
+      if (id) return id;
+      const parts = u.pathname.split('/').filter(Boolean);
+      const maybe = parts.pop();
+      if (maybe && maybe.length === 11) return maybe;
+    }
+  } catch {}
+  return null;
+}
+function fmObj(input: Record<string, any>) {
+  return Object.fromEntries(
+    Object.entries(input).filter(([, v]) => v !== undefined && v !== null && v !== '')
+  );
+}
 
-
+/** ---------- main ---------- */
 async function main() {
-  const q = await notion.databases.query({ database_id: NOTION_DB_ID } as any);
-  const results = (q.results as any[]) ?? [];
+  // Try server-side filter first (Status-type). Fallback to Select-type if needed.
+  let q: any;
+  try {
+    q = await notion.databases.query({
+      database_id: NOTION_DB_ID,
+      filter: { property: 'Status', status: { equals: 'Published' } }
+    } as any);
+  } catch {
+    q = await notion.databases.query({
+      database_id: NOTION_DB_ID,
+      filter: { property: 'Status', select: { equals: 'Published' } }
+    } as any);
+  }
 
-  // Sort by published date desc (fallback last_edited_time)
-  results.sort((a: AnyRecord, b: AnyRecord) => {
-    const pa = getPropAny(a.properties, ['published date', 'PublishedAt', 'Published Date'])?.date?.start ?? a.last_edited_time;
-    const pb = getPropAny(b.properties, ['published date', 'PublishedAt', 'Published Date'])?.date?.start ?? b.last_edited_time;
+  // Sort newest first (PublishedAt fallback to last_edited_time)
+  (q.results as any[]).sort((a, b) => {
+    const pa = a.properties?.PublishedAt?.date?.start ?? a.last_edited_time;
+    const pb = b.properties?.PublishedAt?.date?.start ?? b.last_edited_time;
     return new Date(pb).getTime() - new Date(pa).getTime();
   });
 
-  for (const page of results) {
-    const props = (page.properties ?? {}) as AnyRecord;
+  const writtenFiles: string[] = [];
 
+  for (const page of q.results as any[]) {
+    const props = page.properties ?? {};
+
+    // Double-guard on published (supports Status or Select)
     const statusName = getStatusName(props);
-
-    // ⚠️ Hard rule: skip anything that's not explicitly published
     if (!isPublishedStatus(statusName)) {
-      const _title = text(getPropAny(props, ['title', 'Title'])?.title) || page.id;
-      console.log('Skipping (not published):', _title, `(status: ${statusName || '—'})`);
+      const t = extractText(getPropAny(props, ['Title'])?.title) || page.id;
+      console.log('Skipping (not published):', t, `(status: ${statusName || '—'})`);
       continue;
     }
 
-    const title = text(getPropAny(props, ['title', 'Title'])?.title) || 'Untitled';
-    const slug = text(getPropAny(props, ['slug', 'Slug'])?.rich_text) || slugify(title);
-    const lang = text(getPropAny(props, ['language', 'Language'])?.rich_text) || getPropAny(props, ['language', 'Language'])?.select?.name || '';
-    const tmpl = text(getPropAny(props, ['template', 'Template'])?.rich_text) || getPropAny(props, ['template', 'Template'])?.select?.name || '';
-    const pdate = getPropAny(props, ['published date', 'PublishedAt', 'Published Date'])?.date?.start || page.last_edited_time;
+    const title = extractText(getPropAny(props, ['Title'])?.title) || 'Untitled';
+    const slug =
+      extractText(getPropAny(props, ['Slug'])?.rich_text) || slugify(title);
 
+    // Language can be select or rich_text; normalize to short codes if needed
+    let language =
+      extractText(getPropAny(props, ['Language'])?.rich_text) ||
+      getPropAny(props, ['Language'])?.select?.name ||
+      'en';
+    const langMap: Record<string, string> = {
+      English: 'en', Eng: 'en',
+      Hindi: 'hi', 'हिंदी': 'hi',
+      Bengali: 'bn', Bangla: 'bn', 'বাংলা': 'bn'
+    };
+    language = (langMap[language] ?? language).toLowerCase();
+
+    const publishedAt =
+      getPropAny(props, ['PublishedAt', 'Published Date'])?.date?.start ||
+      page.last_edited_time ||
+      new Date().toISOString();
+
+    // YouTube (optional)
+    const ytUrl =
+      getPropAny(props, ['YouTube', 'Youtube', 'Video URL', 'Video'])?.url ||
+      extractText(getPropAny(props, ['YouTube ID', 'YouTubeId', 'VideoId'])?.rich_text);
+    const youtubeId = extractYouTubeId(ytUrl);
+
+    // Markdown body
     let md = await pageToMarkdown(page.id);
-    if (typeof md !== 'string') md = ''; // <-- guard
+    if (typeof md !== 'string') md = '';
 
-    // derive plain text for excerpt + stats (safe even if md is empty)
+    // Download inline images & rewrite
+    const imgUrls = Array.from((md || '').matchAll(/!\[[^\]]*\]\((https?:\/\/[^)]+)\)/g))
+      .map((m) => m[1])
+      .filter((u): u is string => !!u);
+    for (const url of new Set(imgUrls)) {
+      try {
+        await download(url, localAssetPath(url));
+      } catch {
+        /* ignore download errors */
+      }
+    }
+    md = rewriteImageLinks(md);
+
+    // Cover (optional)
+    const coverUrl =
+      page.cover?.external?.url || page.cover?.file?.url || null;
+    let cover: string | null = null;
+    if (coverUrl) {
+      try {
+        const outPath = localAssetPath(coverUrl);
+        await download(coverUrl, outPath);
+        cover = publicAssetUrl(basename(outPath));
+      } catch {
+        cover = null;
+      }
+    }
+
+    // Excerpt, word count, reading time
     const plain = (md || '')
       .replace(/```[\s\S]*?```/g, '')
       .replace(/`[^`]+`/g, '')
@@ -116,39 +175,95 @@ async function main() {
 
     const wordCount = plain ? plain.split(/\s+/).filter(Boolean).length : 0;
     const readingTime = Math.max(1, Math.round((wordCount || 0) / 200));
-    const excerpt = plain.slice(0, 180);
-    // download images
-    const imgUrls = Array.from(md.matchAll(/!\[[^\]]*\]\((https?:\/\/[^)]+)\)/g))
-      .map(m => m[1])
-      .filter((u): u is string => typeof u === 'string' && u.length > 0);
-    for (const url of new Set(imgUrls)) {
-      try { await download(url, localAssetPath(url)); } catch { }
-    }
-    md = rewriteImages(md);
+    const excerpt = sanitizeOneLine(
+      extractText(getPropAny(props, ['Excerpt'])?.rich_text) || plain.slice(0, 180)
+    );
 
-    const cover = await coverUrl(page);
+    // YAML front-matter (safe)
+    const front = fmObj({
+      title,
+      slug,
+      excerpt,
+      tags: (getPropAny(props, ['Tags'])?.multi_select ?? []).map((t: any) => t.name),
+      cover: cover ?? undefined,
+      status: 'Published',
+      publishedAt,
+      language,
+      wordCount,
+      readingTime,
+      youtubeId: youtubeId ?? undefined
+    });
+    const fm = `---\n${yamlStringify(front)}---\n`;
 
-    const fm = [
-      '---',
-      `title: "${clean(title)}"`,
-      `slug: "${slug}"`,
-      `status: "Published"`,
-      `publishedAt: "${pdate}"`,
-      lang ? `language: "${clean(lang)}"` : '',
-      tmpl ? `template: "${clean(tmpl)}"` : '',
-      cover ? `cover: "${cover}"` : '',
-      `excerpt: "${clean(excerpt)}"`,
-      `wordCount: ${wordCount}`,
-      `readingTime: ${readingTime}`,
-      '---',
-      ''
-    ].filter(Boolean).join('\n');
-
-    writeFileSync(join(OUT_DIR, `${slug}.md`), fm + md);
-    console.log('Synced:', slug);
+    // Write file (use slug.language.md to avoid overwrites across languages)
+    const filename = `${slug}.${language}.md`;
+    writeFileSync(join(OUT_DIR, filename), fm + md);
+    writtenFiles.push(filename);
+    console.log('Synced:', filename.replace(/\.md$/, ''));
   }
+
+  /** Build roadmap/micro-updates JSON (per-slug, per-language statuses) */
+  // We need all rows (not only Published) to show "coming soon" languages
+  const allRows = await notion.databases.query({ database_id: NOTION_DB_ID } as any);
+
+  const supported = (process.env.I18N_LOCALES ?? 'en:English')
+    .split(',')
+    .map((s: string) => s.split(':')[0].trim());
+
+  const groups = new Map<
+    string,
+    { title: string; items: Array<{ code: string; status: string; url: string | null; date: string | null }> }
+  >();
+
+  for (const page of (allRows.results as any[]) ?? []) {
+    const props = page.properties ?? {};
+    const title = extractText(getPropAny(props, ['Title'])?.title) || 'Untitled';
+    const slug =
+      extractText(getPropAny(props, ['Slug'])?.rich_text) || slugify(title);
+    let language =
+      extractText(getPropAny(props, ['Language'])?.rich_text) ||
+      getPropAny(props, ['Language'])?.select?.name ||
+      'en';
+    const langMap: Record<string, string> = {
+      English: 'en', Eng: 'en',
+      Hindi: 'hi', 'हिंदी': 'hi',
+      Bengali: 'bn', Bangla: 'bn', 'বাংলা': 'bn'
+    };
+    language = (langMap[language] ?? language).toLowerCase();
+
+    const statusName = getStatusName(props) || 'Unknown';
+    const isPub = isPublishedStatus(statusName);
+    const date =
+      getPropAny(props, ['PublishedAt', 'Published Date'])?.date?.start ||
+      page.last_edited_time ||
+      null;
+
+    const url = isPub ? `/${language}/blog/${slug}` : null;
+    const g = groups.get(slug) ?? { title, items: [] };
+    g.title = title;
+    g.items.push({ code: language, status: statusName, url, date });
+    groups.set(slug, g);
+  }
+
+  const updates = Array.from(groups.entries()).map(([slug, g]) => {
+    const langs = supported.map((code) => {
+      const pub = g.items.find((i) => i.code === code && isPublishedStatus(i.status));
+      if (pub) return { code, status: 'Published', url: pub.url, date: pub.date };
+      const any = g.items.find((i) => i.code === code);
+      if (any) return { code, status: any.status, url: null, date: any.date ?? null };
+      return { code, status: 'Coming soon', url: null, date: null };
+    });
+    const completeness = langs.every((l) => l.status === 'Published') ? 1 : 0;
+    return { slug, title: g.title, langs, completeness };
+  }).sort((a, b) => b.completeness - a.completeness);
+
+  writeFileSync('public/updates.json', JSON.stringify(updates, null, 2));
+  console.log('Wrote updates.json with', updates.length, 'items');
 
   console.log('✅ Notion → Markdown synced.');
 }
 
-main().catch(e => { console.error(e); process.exit(1); });
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});
