@@ -68,9 +68,10 @@ async function main() {
     const pdate = getPropAny(props, ['published date', 'PublishedAt', 'Published Date'])?.date?.start || page.last_edited_time;
 
     let md = await pageToMarkdown(page.id);
+    if (typeof md !== 'string') md = ''; // <-- guard
 
-    // derive excerpt
-    const plain = md
+    // derive plain text for excerpt + stats (safe even if md is empty)
+    const plain = (md || '')
       .replace(/```[\s\S]*?```/g, '')
       .replace(/`[^`]+`/g, '')
       .replace(/!\[[^\]]*\]\([^)]+\)/g, '')
@@ -79,10 +80,9 @@ async function main() {
       .replace(/\s+/g, ' ')
       .trim();
 
-    const wordCount = plain.split(/\s+/).filter(Boolean).length;
-    const readingTime = Math.max(1, Math.round(wordCount / 200)); // 200 wpm average
+    const wordCount = plain ? plain.split(/\s+/).filter(Boolean).length : 0;
+    const readingTime = Math.max(1, Math.round((wordCount || 0) / 200));
     const excerpt = plain.slice(0, 180);
-
     // download images
     const imgUrls = Array.from(md.matchAll(/!\[[^\]]*\]\((https?:\/\/[^)]+)\)/g))
       .map(m => m[1])
