@@ -43,9 +43,31 @@ function rewriteImages(md: string) {
   });
 }
 
+function getStatusName(props: Record<string, any>): string {
+  // Try common property names; support either case
+  const prop =
+    props?.Status ??
+    props?.status ??
+    props?.State ??
+    props?.state ??
+    null;
+
+  if (!prop) return '';
+
+  // Notion “Status” property
+  if (prop.status && typeof prop.status.name === 'string') {
+    return prop.status.name;
+  }
+  // Notion “Select” property
+  if (prop.select && typeof prop.select.name === 'string') {
+    return prop.select.name;
+  }
+  return '';
+}
+
 function isPublishedStatus(name: unknown) {
   const s = String(name || '').trim().toLowerCase();
-  // accept "published", "published ✅", "live", "public"
+  // Accept common variants; extend if you add more
   return s === 'published' || s.startsWith('published') || s === 'live' || s === 'public';
 }
 
@@ -64,12 +86,12 @@ async function main() {
   for (const page of results) {
     const props = (page.properties ?? {}) as AnyRecord;
 
-    const statusProp = getPropAny(props, ['status', 'Status']); // supports either case
-    const statusName = statusProp?.select?.name;
+    const statusName = getStatusName(props);
 
     // ⚠️ Hard rule: skip anything that's not explicitly published
     if (!isPublishedStatus(statusName)) {
-      console.log('Skipping (not published):', text(getPropAny(props, ['title', 'Title'])?.title) || page.id);
+      const _title = text(getPropAny(props, ['title', 'Title'])?.title) || page.id;
+      console.log('Skipping (not published):', _title, `(status: ${statusName || '—'})`);
       continue;
     }
 
