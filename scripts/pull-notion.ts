@@ -43,6 +43,13 @@ function rewriteImages(md: string) {
   });
 }
 
+function isPublishedStatus(name: unknown) {
+  const s = String(name || '').trim().toLowerCase();
+  // accept "published", "published ✅", "live", "public"
+  return s === 'published' || s.startsWith('published') || s === 'live' || s === 'public';
+}
+
+
 async function main() {
   const q = await notion.databases.query({ database_id: NOTION_DB_ID } as any);
   const results = (q.results as any[]) ?? [];
@@ -57,9 +64,14 @@ async function main() {
   for (const page of results) {
     const props = (page.properties ?? {}) as AnyRecord;
 
-    const statusProp = getPropAny(props, ['status', 'Status']);
-    const status = statusProp?.select?.name ?? 'Published';
-    if (statusProp && status !== 'Published') continue;
+    const statusProp = getPropAny(props, ['status', 'Status']); // supports either case
+    const statusName = statusProp?.select?.name;
+
+    // ⚠️ Hard rule: skip anything that's not explicitly published
+    if (!isPublishedStatus(statusName)) {
+      console.log('Skipping (not published):', text(getPropAny(props, ['title', 'Title'])?.title) || page.id);
+      continue;
+    }
 
     const title = text(getPropAny(props, ['title', 'Title'])?.title) || 'Untitled';
     const slug = text(getPropAny(props, ['slug', 'Slug'])?.rich_text) || slugify(title);
