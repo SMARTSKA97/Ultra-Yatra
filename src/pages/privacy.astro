@@ -1,0 +1,46 @@
+---
+import SiteLayout from "../layouts/SiteLayout.astro";
+const site = (Astro.site ?? new URL("http://localhost:4321")).toString().replace(/\/$/, "");
+---
+<SiteLayout title="Privacy Policy • Ultra Yatra" description="How Ultra Yatra handles your data.">
+  <article class="prose">
+    <h1>Privacy Policy</h1>
+    <p>Last updated: {new Date().toLocaleDateString()}</p>
+
+    <h2>Who we are</h2>
+    <p>
+      Ultra Yatra is a personal site by SKA97. Website: <a href={site}>{site}</a>.
+      Contact: <a href="mailto:sneakyska97@outlook.com">sneakyska97@outlook.com</a>.
+    </p>
+
+    <h2>What we collect</h2>
+    <ul>
+      <li><strong>Site logs:</strong> basic server logs for uptime and abuse prevention.</li>
+      <li><strong>Content data:</strong> posts and pages you read (aggregated; no PII).</li>
+      <li><strong>Voluntary messages:</strong> emails you send us.</li>
+    </ul>
+
+    <h2>Cookies & analytics</h2>
+    <p>
+      We currently do <strong>not</strong> use cookies or analytics that track you across sites.
+      If we add analytics later (e.g., Google Analytics or Plausible), we will update this page and, where required,
+      show a consent banner.
+    </p>
+
+    <h2>Third-party content</h2>
+    <p>
+      Posts may embed third-party media (e.g., images, maps). Those services may collect their own data per their policies.
+    </p>
+
+    <h2>Your choices</h2>
+    <ul>
+      <li>Use a content blocker if you prefer to reduce third-party requests.</li>
+      <li>Email us to request removal of any comment or personal info you provided.</li>
+    </ul>
+
+    <h2>Changes</h2>
+    <p>
+      We may update this policy as the site evolves. Significant changes will be noted on the site.
+    </p>
+  </article>
+</SiteLayout>

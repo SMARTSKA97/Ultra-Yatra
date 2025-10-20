@@ -208,3 +208,9 @@ article.prose pre {
 .search input::placeholder {
     color: var(--muted)
 }
+
+.progress {
+  position: fixed; top: 0; left: 0; height: 3px; width: 0%;
+  background: var(--brand); z-index: 1000;
+  transition: width .15s ease-out;
+}

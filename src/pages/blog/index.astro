@@ -2,6 +2,8 @@
 import SiteLayout from "../../layouts/SiteLayout.astro";
 import { getCollection } from "astro:content";
 import PostCard from "../../components/PostCard.astro";
+import Updates from "../../components/Updates.astro";
+
 
 const posts = (await getCollection("posts"))
   .filter((p:any) => (p.data.status ?? "Published") === "Published")
@@ -13,7 +15,10 @@ const posts = (await getCollection("posts"))
   <div class="search">
     <input id="q" type="search" placeholder="Search posts (title, excerpt, language)..." />
   </div>
-
+  <div class="grid" style="margin-bottom:1.5rem; padding-top:1rem;">
+    <Updates title="Roadmap & Micro-updates" />
+  </div>
+  
   <div class="grid" id="grid">
     {posts.map((p:any) => (
       <PostCard
@@ -54,4 +59,27 @@ const posts = (await getCollection("posts"))
       grid.innerHTML = results.map(tpl).join('');
     });
   </script>
+
+  <!-- <section class="hero">
+    <h1>Ultra Yatra</h1>
+    <p>My ultracycling journey — stories, scars, stats, and soul. Long miles, honest lessons.</p>
+  </section> -->
+
+  
+
+  <!-- <section>
+    <h2 style="margin:0 0 1rem">Latest posts</h2>
+    <div class="grid">
+      {posts.map((p:any) => (
+        <PostCard
+          href={`/blog/${p.data.slug ?? p.slug}`}
+          title={p.data.title}
+          cover={p.data.cover}
+          date={String(p.data.publishedAt)}
+          language={p.data.language}
+          excerpt={p.data.excerpt}
+        />
+      ))}
+    </div>
+  </section> -->
 </SiteLayout>

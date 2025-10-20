@@ -1,51 +1,103 @@
 ---
 const { title = "Ultra Yatra", description = "" } = Astro.props;
 const path = Astro.url.pathname;
-function isActive(href: string) { return path === href ? "page" : undefined; }
+function isActive(href: string) {
+  return path === href ? "page" : undefined;
+}
 ---
+
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
+    {
+      import.meta.env.PUBLIC_PLAUSIBLE_DOMAIN && (
+        <script
+          defer
+          data-domain={import.meta.env.PUBLIC_PLAUSIBLE_DOMAIN}
+          src="https://plausible.io/js/script.js"
+        />
+      )
+    }
     <link rel="stylesheet" href="/src/styles/site.css" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icon.png" />
     <script>
-      const saved = localStorage.getItem('theme');
-      const prefers = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark':'light';
+      const saved = localStorage.getItem("theme");
+      const prefers = window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light";
       const mode = saved || prefers;
-      if (mode === 'dark') document.documentElement.classList.add('dark');
+      if (mode === "dark") document.documentElement.classList.add("dark");
     </script>
   </head>
   <body>
+    <div id="progress" class="progress"></div>
     <header class="navbar">
       <div class="container row">
         <div class="row" style="gap:.75rem;">
           <strong class="brand"><a href="/">Ultra Yatra</a></strong>
-          <a class="pill" href="/blog" aria-current={isActive('/blog')}>Blog</a>
-          <a class="pill" href="/tags" aria-current={isActive('/tags')}>Tags</a>
-          <a class="pill" href="/about" aria-current={isActive('/about')}>About</a>
+          <a class="pill" href="/blog" aria-current={isActive("/blog")}>Blog</a>
+          <a class="pill" href="/tags" aria-current={isActive("/tags")}>Tags</a>
+          <a class="pill" href="/about" aria-current={isActive("/about")}
+            >About</a
+          >
         </div>
-        <button id="theme-toggle" class="pill" aria-label="Toggle theme">🌓 Theme</button>
+        <button id="theme-toggle" class="pill" aria-label="Toggle theme"
+          >🌓 Theme</button
+        >
       </div>
     </header>
 
-    <main class="main"><div class="container"><slot /></div></main>
+    <main class="main">
+      <div class="container">
+        <div class="badge" style="display:block; margin:0 0 1rem;">
+          🚀 New posts coming soon — <a href="/rss.xml">subscribe via RSS</a> or
+          <a href="mailto:hello@yourdomain.com?subject=Ultra%20Yatra%20Updates"
+            >get in touch</a
+          >.
+        </div>
+
+        <slot />
+      </div>
+    </main>
 
     <footer>
       <div class="container row">
         <small>© {new Date().getFullYear()} Ultra Yatra</small>
-        <small><a href="/blog">All posts</a> • <a href="/rss.xml">RSS</a> • <a href="/sitemap.xml">Sitemap</a></small>
+        <small>
+          <a href="/blog">All posts</a> • <a href="/rss.xml">RSS</a> • <a
+            href="/sitemap.xml">Sitemap</a
+          > • <a href="/privacy">Privacy</a>
+        </small>
       </div>
     </footer>
 
     <script type="module">
-      const btn = document.getElementById('theme-toggle');
-      btn?.addEventListener('click', () => {
+      const btn = document.getElementById("theme-toggle");
+      btn?.addEventListener("click", () => {
         const c = document.documentElement.classList;
-        const next = c.toggle('dark') ? 'dark' : 'light';
-        localStorage.setItem('theme', next);
+        const next = c.toggle("dark") ? "dark" : "light";
+        localStorage.setItem("theme", next);
       });
+      const bar = document.getElementById("progress");
+      const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
+      const update = () => {
+        const { scrollTop, scrollHeight, clientHeight } =
+          document.documentElement;
+        const max = scrollHeight - clientHeight;
+        const pct = max > 0 ? (scrollTop / max) * 100 : 0;
+        bar.style.width = clamp(pct, 0, 100) + "%";
+      };
+      let t;
+      const onScroll = () => {
+        cancelAnimationFrame(t);
+        t = requestAnimationFrame(update);
+      };
+      update();
+      addEventListener("scroll", onScroll, { passive: true });
+      addEventListener("resize", onScroll);
     </script>
   </body>
 </html>

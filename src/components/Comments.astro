@@ -1,21 +1,18 @@
 ---
-const { pathname } = Astro.url;
+const { title = "", identifier = "", url = "" } = Astro.props;
 ---
+
 <section id="comments" style="margin-top:2rem;">
-  <script
-    src="https://giscus.app/client.js"
-    data-repo="yourname/yourrepo"
-    data-repo-id="YOUR_REPO_ID"
-    data-category="Comments"
-    data-category-id="YOUR_CATEGORY_ID"
-    data-mapping="pathname"
-    data-reactions-enabled="1"
-    data-emit-metadata="0"
-    data-input-position="bottom"
-    data-theme="light"
-    data-lang="en"
-    crossorigin="anonymous"
-    async>
-  </script>
+  <div
+    id="cusdis_thread"
+    data-host="https://cusdis.com"
+    data-app-id="c782287e-098a-4260-a244-7df574a09704"
+    data-page-id="{{ PAGE_ID }}"
+    data-page-url="{{ PAGE_URL }}"
+    data-page-title="{{ PAGE_TITLE }}"
+  >
+  </div>
+  <script async defer src="https://cusdis.com/js/cusdis.es.js"></script>
+
   <noscript>Enable JavaScript to view comments.</noscript>
 </section>

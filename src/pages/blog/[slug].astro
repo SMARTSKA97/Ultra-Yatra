@@ -1,36 +1,86 @@
 ---
 import SiteLayout from "../../layouts/SiteLayout.astro";
 import { getCollection, type CollectionEntry } from "astro:content";
-import Comments from "../../components/Comments.astro";
 
-// Tell Astro exactly what we return so TS doesn't infer `never`
 export async function getStaticPaths() {
   const posts = await getCollection("posts", (p:any) => (p.data.status ?? "Published") === "Published");
   return posts.map((p:any) => ({
     params: { slug: (p.data.slug ?? p.slug) as string },
-    // Pass the entry along as a typed prop
     props: { entry: p as CollectionEntry<"posts"> },
   }));
 }
 
-// Type the props we read from getStaticPaths
 const { entry } = Astro.props as { entry: CollectionEntry<"posts"> };
-
 const { Content } = await entry.render();
+
 const metaTitle = `${entry.data.title} • Ultra Yatra`;
-const metaDesc = entry.data.excerpt ?? "";
+const metaDesc  = entry.data.excerpt ?? "";
+const canonical = new URL(`/blog/${entry.data.slug ?? entry.slug}`, Astro.site ?? "http://localhost:4321").toString();
 ---
 
 <SiteLayout title={metaTitle} description={metaDesc}>
-  <article class="prose">
-    <h1>{entry.data.title}</h1>
-    <p class="meta">
-      <span>{new Date(String(entry.data.publishedAt)).toLocaleDateString()}</span>
-      {entry.data.language && <span> • {entry.data.language}</span>}
-    </p>
-    {entry.data.cover && <img src={entry.data.cover} alt="" />}
-    <Content />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content={entry.data.title} />
+  <meta property="og:description" content={entry.data.excerpt ?? ""} />
+  <meta property="og:url" content={canonical} />
+  <meta property="og:image" content={entry.data.cover ?? "/og-default.png"} />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content={entry.data.title} />
+  <meta name="twitter:description" content={entry.data.excerpt ?? ""} />
+  <meta name="twitter:image" content={entry.data.cover ?? "/og-default.png"} />
+  <!-- JSON-LD BlogPosting -->
+  <script type="application/ld+json">
+    {JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      "headline": entry.data.title,
+      "description": entry.data.excerpt ?? "",
+      "datePublished": String(entry.data.publishedAt),
+      "author": { "@type": "Person", "name": "SKA97" },
+      "image": entry.data.cover ? [entry.data.cover] : undefined,
+      "mainEntityOfPage": canonical,
+    })}
+  </script>
+
+  <article class="prose" style="display:grid; grid-template-columns: 1fr; gap: 1.5rem;">
+    <header>
+      <h1>{entry.data.title}</h1>
+      <p class="meta">
+        <span>{new Date(String(entry.data.publishedAt)).toLocaleDateString()}</span>
+        {entry.data.language && <span> • {entry.data.language}</span>}
+        {typeof entry.data.readingTime === 'number' && <span> • {entry.data.readingTime} min read</span>}
+      </p>
+      {entry.data.cover && <img src={entry.data.cover} alt="" />}
+    </header>
+
+    <!-- TOC -->
+    <aside id="toc" class="card" style="padding:1rem; border-radius:12px;">
+      <strong>On this page</strong>
+      <nav id="toc-list" class="meta" style="display:block; margin-top:.5rem;"></nav>
+    </aside>
+
+    <div id="post-body">
+      <Content />
+    </div>
   </article>
 
-  <Comments />
+  <script type="module">
+    // Build TOC from h2/h3
+    const body = document.getElementById('post-body');
+    const list = document.getElementById('toc-list');
+    try {
+      const heads = body.querySelectorAll('h2, h3');
+      const items = Array.from(heads).map(h => {
+        const id = h.id || h.textContent.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-');
+        h.id = id;
+        const lvl = h.tagName === 'H3' ? 2 : 1;
+        return { id, text: h.textContent || '', lvl };
+      });
+      list.innerHTML = items.map(i =>
+        `<div style="margin:.25rem 0; padding-left:${i.lvl===2?'1rem':'0'}">
+          <a href="#${i.id}">${i.text}</a>
+        </div>`
+      ).join('') || '<span class="meta">No sections</span>';
+    } catch {}
+  </script>
 </SiteLayout>

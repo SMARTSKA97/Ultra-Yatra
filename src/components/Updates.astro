@@ -1,0 +1,25 @@
+---
+const title = Astro.props?.title ?? "Updates";
+---
+<section class="card" style="padding:1rem;">
+  <h3 style="margin:.25rem 0 .75rem">{title}</h3>
+  <div id="updates" class="meta">Loading updates…</div>
+
+  <script type="module">
+    const box = document.getElementById('updates');
+    try {
+      const res = await fetch('/updates.json', { cache: 'no-store' });
+      const items = await res.json();
+      box.innerHTML = (items || []).slice(0, 5).map(i => `
+        <div style="margin:.5rem 0;">
+          <div style="font-weight:600">${i.title}</div>
+          <div style="font-size:.85rem; opacity:.75">${new Date(i.date).toLocaleDateString()}</div>
+          <div style="margin-top:.25rem">${i.body}</div>
+          ${i.link ? `<div style="margin-top:.25rem"><a href="${i.link}">Read more →</a></div>` : ''}
+        </div>
+      `).join('') || '<span class="meta">No updates yet.</span>';
+    } catch (e) {
+      box.textContent = 'No updates yet.';
+    }
+  </script>
+</section>

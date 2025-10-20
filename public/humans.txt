@@ -1,0 +1,11 @@
+/* TEAM */
+Author: SKA97
+Site: Ultra Yatra
+Role: Developer, Teacher, Endurance Cyclist
+Contact: sneakyska97@outlook.com
+Twitter: @ska97
+
+/* SITE */
+Stack: Astro, Notion, TypeScript
+Hosting: Vercel (or Netlify)
+Analytics: Plausible (privacy-friendly)

@@ -1,7 +1,67 @@
 ---
 import SiteLayout from "../layouts/SiteLayout.astro";
+import { getCollection, type CollectionEntry } from "astro:content";
+
+const posts: CollectionEntry<"posts">[] = (await getCollection("posts"))
+  .filter((p:any) => (p.data.status ?? "Published") === "Published")
+  .sort((a:any, b:any) => new Date(String(b.data.publishedAt)).getTime() - new Date(String(a.data.publishedAt)).getTime())
+  .slice(0, 5);
 ---
-<SiteLayout title="Not found • Ultra Yatra" description="The page you requested does not exist.">
-  <h1>404</h1>
-  <p>Couldn't find that page. Try the <a href="/blog">blog</a> or <a href="/">home</a>.</p>
+<SiteLayout title="Not found • Ultra Yatra" description="We couldn’t find that page.">
+  <article class="prose">
+    <h1>404</h1>
+    <p>Couldn’t find that page. Try a search, or check recent posts.</p>
+
+    <div class="search">
+      <input id="q404" type="search" placeholder="Search posts…" />
+    </div>
+    <div id="list404" class="grid" style="margin-bottom:1rem;"></div>
+
+    <h2>Recent posts</h2>
+    <ul>
+      {posts.map((p) => (
+        <li><a href={`/blog/${p.data.slug ?? p.slug}`}>{p.data.title}</a></li>
+      ))}
+    </ul>
+  </article>
+
+  <script type="module">
+    // lightweight search reuse
+    const input = document.getElementById('q404');
+    const list = document.getElementById('list404');
+    async function ensureFuse() {
+      if (!window.__fuse) {
+        const mod = await import('/web_modules/fuse.js');
+        window.__fuse = mod.default;
+      }
+      return window.__fuse;
+    }
+    async function loadIndex() {
+      const res = await fetch('/api/search.json', { cache: 'no-store' });
+      return await res.json();
+    }
+    const data = await loadIndex();
+    const Fuse = await ensureFuse();
+    const fuse = new Fuse(data, { keys: ['title','excerpt','language'], threshold: 0.4 });
+
+    const tpl = (p) => `
+      <article class="card">
+        ${p.cover ? `<a href="/blog/${p.slug}"><img src="${p.cover}" alt=""></a>` : ''}
+        <div class="pad">
+          <h3><a href="/blog/${p.slug}">${p.title}</a></h3>
+          <p class="meta">
+            <span>${new Date(p.date).toLocaleDateString()}</span>
+            ${p.language ? `<span> • ${p.language}</span>` : ''}
+          </p>
+          ${p.excerpt ? `<p style="opacity:.85;margin:.5rem 0 0">${p.excerpt}</p>` : ''}
+        </div>
+      </article>`;
+
+    input?.addEventListener('input', (e) => {
+      const term = e.target.value.trim();
+      if (!term) { list.innerHTML = ''; return; }
+      const results = fuse.search(term).map(r => r.item).slice(0,6);
+      list.innerHTML = results.map(tpl).join('');
+    });
+  </script>
 </SiteLayout>
