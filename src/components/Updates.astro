@@ -3,8 +3,12 @@ import { getCollection, type CollectionEntry } from "astro:content";
 
 const title = Astro.props?.title ?? "Updates";
 
-const draftPosts: CollectionEntry<"posts">[] = (await getCollection("posts"))
-  .filter((p: CollectionEntry<"posts">) => p.data.status === "Draft")
+// Fetch ALL posts
+const allPosts: CollectionEntry<"posts">[] = await getCollection("posts");
+
+// Filter for any post that is NOT 'Published'
+const upcomingPosts = allPosts
+  .filter((p: CollectionEntry<"posts">) => p.data.status !== "Published")
   .sort((a: CollectionEntry<"posts">, b: CollectionEntry<"posts">) => 
     new Date(b.data.publishedAt).getTime() - new Date(a.data.publishedAt).getTime()
   )
@@ -13,14 +17,14 @@ const draftPosts: CollectionEntry<"posts">[] = (await getCollection("posts"))
 <section class="card" style="padding:1rem;">
   <h3 style="margin:.25rem 0 .75rem">{title}</h3>
   <div id="updates" class="meta">
-    {draftPosts.length === 0 ? (
+    {upcomingPosts.length === 0 ? (
       <span class="meta">No updates yet.</span>
     ) : (
-      draftPosts.map(i => (
+      upcomingPosts.map(i => (
         <div style="margin:.5rem 0;">
           <div style="font-weight:600">{i.data.title}</div>
           <div style="font-size:.85rem; opacity:.75">
-            (Draft planned for {new Date(i.data.publishedAt).toLocaleDateString()})
+            (Status: {i.data.status}) <!-- Shows 'Draft' or 'Not started' -->
           </div>
           {i.data.excerpt && <div style="margin-top:.25rem">{i.data.excerpt}</div>}
         </div>
@@ -28,4 +32,5 @@ const draftPosts: CollectionEntry<"posts">[] = (await getCollection("posts"))
     )}
   </div>
 </section>
+
 
